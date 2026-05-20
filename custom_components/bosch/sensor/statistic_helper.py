@@ -13,6 +13,11 @@ from sqlalchemy.exc import IntegrityError
 from homeassistant.util import dt as dt_util
 
 try:
+    from homeassistant.components.recorder.statistics import StatisticMeanType
+except ImportError:
+    StatisticMeanType = None
+
+try:
     from homeassistant.components.recorder.db_schema import StatisticsMeta
 except ImportError:
     from homeassistant.components.recorder.models import StatisticsMeta
@@ -68,16 +73,28 @@ class StatisticHelper(BoschBaseSensor):
         """Don't poll."""
         return False
 
+    _UNIT_CLASS_MAP = {
+        "kWh": "energy",
+        "Wh": "energy",
+        "kW": "power",
+    }
+
+    def _get_unit_class(self):
+        """Derive unit_class from unit_of_measurement."""
+        return self._UNIT_CLASS_MAP.get(self._unit_of_measurement)
+
     @property
     def statistic_metadata(self) -> StatisticMetaData:
         """Statistic Metadata recorder model class."""
         return StatisticMetaData(
             has_mean=False,
+            **({'mean_type': StatisticMeanType.NONE} if StatisticMeanType is not None else {}),
             has_sum=True,
             name=f"Stats {self._name}",
             source=self._domain_name.lower(),
             statistic_id=self.statistic_id,
             unit_of_measurement=self._unit_of_measurement,
+            unit_class=self._get_unit_class(),
         )
 
     async def get_last_stat(self) -> dict[str, list[StatisticsRow]]:

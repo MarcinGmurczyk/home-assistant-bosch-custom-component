@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import timedelta, datetime
 import logging
 from .statistic_helper import StatisticHelper
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 from ..const import SIGNAL_RECORDING_UPDATE_BOSCH, UNITS_CONVERTER, VALUE
 from homeassistant.components.recorder.models import (
@@ -43,6 +44,10 @@ class RecordingSensor(StatisticHelper):
         )
         self._attr_device_class = self._bosch_object.device_class
         self._attr_state_class = self._bosch_object.state_class
+        # Fix: temperature device class is incompatible with state_class total
+        if (self._attr_device_class == SensorDeviceClass.TEMPERATURE
+                and self._attr_state_class == SensorStateClass.TOTAL):
+            self._attr_state_class = SensorStateClass.MEASUREMENT
 
         self._attr_last_reset = last_reset
         if self._update_init:
